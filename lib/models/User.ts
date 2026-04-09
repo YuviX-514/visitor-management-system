@@ -67,7 +67,7 @@ const UserSchema = new Schema<IUser>(
 )
 
 // Auto-generate employee ID before saving
-UserSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function () {
   if (this.isNew && (this.role === 'employee' || this.role === 'admin')) {
     if (!this.employeeId) {
       // Find the last employee ID
@@ -87,7 +87,6 @@ UserSchema.pre('save', async function (next) {
       this.employeeId = `EMP${String(nextNumber).padStart(4, '0')}`
     }
   }
-  next()
 })
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
