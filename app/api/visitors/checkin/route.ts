@@ -84,26 +84,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create visit request (pending approval)
-    const visitRequest = await VisitRequest.create({
+    // Generate QR code for visitor
+    const qrCodeData = JSON.stringify({
       visitorName: fullName,
       visitorEmail: email,
-      visitorPhone: phoneNumber,
-      visitorCompany: company,
+      hostEmployee: hostEmployee.fullName,
+      checkInTime: new Date().toISOString(),
+    })
+    const qrCode = await QRCode.toDataURL(qrCodeData)
+
+    // Create visitor record (immediate check-in, no approval needed for security desk check-ins)
+    const visitor = await Visitor.create({
+      fullName,
+      email,
+      phoneNumber,
+      company,
       purpose,
-      requestedDate: new Date(),
-      requestedTime: new Date().toLocaleTimeString(),
       hostEmployeeId,
-      hostEmployeeName,
+      hostEmployeeName: hostEmployee.fullName,
       hostEmployeeEmail: hostEmployee.email,
-      status: 'pending',
-      createdBy: 'security',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      emailSent: false,
-      notificationSent: false,
+      photoUrl: photoBase64,
+      checkInTime: new Date(),
+      status: 'checked-in',
+      qrCode,
+      checkoutEmailSent: false,
     })
 
-    // Send email notification to host employee
+    // Send email notification to host employee about the visitor
     try {
       await sendVisitorRequestEmail(
         hostEmployee.email,
@@ -114,11 +121,9 @@ export async function POST(request: NextRequest) {
           phone: phoneNumber,
           purpose,
           company,
-          requestId: visitRequest._id.toString(),
+          requestId: visitor._id.toString(),
         }
       )
-      visitRequest.emailSent = true
-      await visitRequest.save()
     } catch (emailError) {
       console.error('Email sending error:', emailError)
       // Continue even if email fails
@@ -128,21 +133,20 @@ export async function POST(request: NextRequest) {
     try {
       await Notification.create({
         userId: hostEmployeeId,
-        type: 'request',
-        title: 'New Visitor Request',
-        message: `${fullName} is requesting to visit you. Purpose: ${purpose}`,
-        relatedId: visitRequest._id,
+        type: 'checkin',
+        title: 'Visitor Checked In',
+        message: `${fullName} has checked in and is here to see you. Purpose: ${purpose}`,
+        relatedId: visitor._id,
         isRead: false,
       })
-      visitRequest.notificationSent = true
-      await visitRequest.save()
     } catch (notifError) {
       console.error('Notification error:', notifError)
     }
 
     return NextResponse.json({
-      message: 'Visitor request sent to employee. Awaiting approval.',
-      request: visitRequest,
+      message: 'Visitor checked in successfully',
+      ...visitor.toObject(),
+      _id: visitor._id.toString(),
     }, { status: 201 })
 
   } catch (error) {
