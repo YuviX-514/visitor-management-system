@@ -5,6 +5,7 @@ export interface IVisitRequest extends Document {
   visitorEmail: string
   visitorPhone: string
   visitorCompany?: string
+  visitorPhotoUrl?: string
   purpose: string
   requestedDate: Date
   requestedTime: string
@@ -23,6 +24,11 @@ export interface IVisitRequest extends Document {
   notificationSent: boolean
   expiresAt: Date
   createdBy: string
+  requestedBy?: {
+    userId: mongoose.Types.ObjectId
+    name: string
+    role: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -48,6 +54,9 @@ const VisitRequestSchema = new Schema<IVisitRequest>(
     visitorCompany: {
       type: String,
       trim: true,
+    },
+    visitorPhotoUrl: {
+      type: String,
     },
     purpose: {
       type: String,
@@ -120,6 +129,18 @@ const VisitRequestSchema = new Schema<IVisitRequest>(
       type: String,
       enum: ['security', 'employee', 'admin'],
       default: 'security',
+    },
+    requestedBy: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      name: {
+        type: String,
+      },
+      role: {
+        type: String,
+      },
     },
   },
   {
