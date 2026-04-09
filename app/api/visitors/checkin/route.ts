@@ -96,6 +96,17 @@ export async function POST(request: NextRequest) {
     })
     const qrCode = await QRCode.toDataURL(qrCodeData)
 
+    // Get the current user (security guard or admin) who is checking in
+    const currentUser = await User.findById(authData.userId)
+    if (!currentUser) {
+      return NextResponse.json(
+        { message: 'Current user not found' },
+        { status: 404 }
+      )
+    }
+
+    const checkedInByName = currentUser.fullName || currentUser.name || 'Unknown'
+
     // Create visitor record (immediate check-in, no approval needed for security desk check-ins)
     const visitor = await Visitor.create({
       fullName,
@@ -111,6 +122,11 @@ export async function POST(request: NextRequest) {
       status: 'checked-in',
       qrCode,
       checkoutEmailSent: false,
+      checkedInBy: {
+        userId: authData.userId,
+        name: checkedInByName,
+        role: authData.role,
+      },
     })
 
     // Send email notification to host employee about the visitor

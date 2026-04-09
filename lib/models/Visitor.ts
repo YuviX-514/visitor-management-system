@@ -18,6 +18,16 @@ export interface IVisitor extends Document {
   idProof?: string
   requestId?: mongoose.Types.ObjectId
   checkoutEmailSent: boolean
+  checkedInBy: {
+    userId: mongoose.Types.ObjectId
+    name: string
+    role: string
+  }
+  checkedOutBy?: {
+    userId: mongoose.Types.ObjectId
+    name: string
+    role: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -95,6 +105,33 @@ const VisitorSchema = new Schema<IVisitor>(
     checkoutEmailSent: {
       type: Boolean,
       default: false,
+    },
+    checkedInBy: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+      name: {
+        type: String,
+        required: true,
+      },
+      role: {
+        type: String,
+        required: true,
+      },
+    },
+    checkedOutBy: {
+      userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      name: {
+        type: String,
+      },
+      role: {
+        type: String,
+      },
     },
   },
   {

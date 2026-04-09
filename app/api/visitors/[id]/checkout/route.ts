@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import Visitor from '@/lib/models/Visitor'
+import User from '@/lib/models/User'
 import Notification from '@/lib/models/Notification'
 import { authenticateRequest } from '@/lib/auth'
 import { sendCheckoutNotification } from '@/lib/email'
@@ -44,6 +45,17 @@ export async function PATCH(
       )
     }
 
+    // Get the current user (security guard or admin) who is checking out
+    const currentUser = await User.findById(authData.userId)
+    if (!currentUser) {
+      return NextResponse.json(
+        { message: 'Current user not found' },
+        { status: 404 }
+      )
+    }
+
+    const checkedOutByName = currentUser.fullName || currentUser.name || 'Unknown'
+
     const checkOutTime = new Date()
     visitor.checkOutTime = checkOutTime
     visitor.status = 'checked-out'
@@ -54,6 +66,13 @@ export async function PATCH(
     const hours = Math.floor(durationMs / (1000 * 60 * 60))
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
     visitor.visitDuration = `${hours}h ${minutes}m`
+    
+    // Track who checked out the visitor
+    visitor.checkedOutBy = {
+      userId: authData.userId,
+      name: checkedOutByName,
+      role: authData.role,
+    }
     
     await visitor.save()
 

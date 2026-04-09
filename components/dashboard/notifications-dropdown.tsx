@@ -61,13 +61,13 @@ export default function NotificationsDropdown() {
               <DropdownMenuItem
                 key={notification._id}
                 className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
-                  !notification.read ? 'bg-blue-50' : ''
+                  !(notification.isRead || notification.read) ? 'bg-blue-50' : ''
                 }`}
-                onClick={() => !notification.read && handleMarkAsRead(notification._id)}
+                onClick={() => !(notification.isRead || notification.read) && handleMarkAsRead(notification._id)}
               >
                 <div className="flex items-start justify-between w-full gap-2">
                   <div className="font-medium text-sm">{notification.title}</div>
-                  {!notification.read && (
+                  {!(notification.isRead || notification.read) && (
                     <Badge variant="default" className="h-2 w-2 rounded-full p-0" />
                   )}
                 </div>

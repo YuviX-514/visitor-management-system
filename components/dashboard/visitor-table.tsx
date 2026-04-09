@@ -51,6 +51,9 @@ export default function VisitorTable({ visitors, showCheckout }: VisitorTablePro
               <TableHead>Purpose</TableHead>
               <TableHead>Host</TableHead>
               <TableHead>Check-in</TableHead>
+              <TableHead>Check-out</TableHead>
+              <TableHead>Checked In By</TableHead>
+              <TableHead>Checked Out By</TableHead>
               <TableHead>Status</TableHead>
               {showCheckout && <TableHead>Actions</TableHead>}
             </TableRow>
@@ -99,6 +102,53 @@ export default function VisitorTable({ visitors, showCheckout }: VisitorTablePro
                       </>
                     ) : (
                       <span className="text-muted-foreground">N/A</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {visitor.checkOutTime && !isNaN(new Date(visitor.checkOutTime).getTime()) ? (
+                      <>
+                        {format(new Date(visitor.checkOutTime), 'MMM dd, yyyy')}
+                        <div className="text-muted-foreground">
+                          {format(new Date(visitor.checkOutTime), 'hh:mm a')}
+                        </div>
+                        {visitor.visitDuration && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Duration: {visitor.visitDuration}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {visitor.checkedInBy ? (
+                      <>
+                        <div className="font-medium">{visitor.checkedInBy.name}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {visitor.checkedInBy.role}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">N/A</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    {visitor.checkedOutBy ? (
+                      <>
+                        <div className="font-medium">{visitor.checkedOutBy.name}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {visitor.checkedOutBy.role}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </div>
                 </TableCell>
