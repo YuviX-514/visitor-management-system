@@ -27,7 +27,12 @@ export default function VisitorTable({ visitors, showCheckout }: VisitorTablePro
     }
   }
 
-  if (visitors.length === 0) {
+  // Filter out invalid visitor records (old/corrupt data)
+  const validVisitors = visitors.filter(
+    (v) => v && v._id && v.fullName && v.email && v.phoneNumber && v.purpose
+  )
+
+  if (validVisitors.length === 0) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -59,8 +64,8 @@ export default function VisitorTable({ visitors, showCheckout }: VisitorTablePro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visitors.map((visitor) => (
-              <TableRow key={visitor._id}>
+            {validVisitors.map((visitor, index) => (
+              <TableRow key={visitor._id || `visitor-${index}`}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar>

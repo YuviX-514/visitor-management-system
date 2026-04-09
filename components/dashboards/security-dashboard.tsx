@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { fetchActiveVisitors, fetchVisitors } from '@/lib/features/visitors/visitorSlice'
+import { fetchRequests } from '@/lib/features/requests/requestSlice'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import VisitorTable from '@/components/dashboard/visitor-table'
 import CheckInDialog from '@/components/dashboard/checkin-dialog'
@@ -20,14 +21,23 @@ export default function SecurityDashboard() {
   useEffect(() => {
     dispatch(fetchVisitors())
     dispatch(fetchActiveVisitors())
+    dispatch(fetchRequests())
     
     // Poll for active visitors every 30 seconds
     const interval = setInterval(() => {
       dispatch(fetchActiveVisitors())
+      dispatch(fetchRequests())
     }, 30000)
 
     return () => clearInterval(interval)
   }, [dispatch])
+
+  const handleCheckinSuccess = () => {
+    // Refresh all data after successful check-in
+    dispatch(fetchVisitors())
+    dispatch(fetchActiveVisitors())
+    dispatch(fetchRequests())
+  }
 
   return (
     <DashboardLayout>
@@ -99,7 +109,11 @@ export default function SecurityDashboard() {
           </TabsContent>
         </Tabs>
 
-        <CheckInDialog open={showCheckIn} onOpenChange={setShowCheckIn} />
+        <CheckInDialog 
+          open={showCheckIn} 
+          onOpenChange={setShowCheckIn}
+          onSuccess={handleCheckinSuccess}
+        />
       </div>
     </DashboardLayout>
   )
