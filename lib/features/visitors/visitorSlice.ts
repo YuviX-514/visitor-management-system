@@ -181,8 +181,9 @@ const visitorSlice = createSlice({
       })
       .addCase(checkInVisitor.fulfilled, (state, action) => {
         state.loading = false
-        state.visitors.unshift(action.payload)
-        state.activeVisitors.unshift(action.payload)
+        // Check-in now creates a pending request, not an immediate visitor
+        // Visitor will be added when host approves the request
+        // The request is handled in the requests slice
       })
       .addCase(checkInVisitor.rejected, (state, action) => {
         state.loading = false

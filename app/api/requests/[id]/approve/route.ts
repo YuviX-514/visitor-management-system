@@ -63,6 +63,29 @@ export async function PATCH(
     visitRequest.qrCode = qrCode
     await visitRequest.save()
 
+    // Create actual Visitor record now that it's approved (checked-in status)
+    const visitor = await Visitor.create({
+      fullName: visitRequest.visitorName,
+      email: visitRequest.visitorEmail,
+      phoneNumber: visitRequest.visitorPhone,
+      company: visitRequest.visitorCompany,
+      purpose: visitRequest.purpose,
+      hostEmployeeId: visitRequest.hostEmployeeId,
+      hostEmployeeName: visitRequest.hostEmployeeName,
+      hostEmployeeEmail: visitRequest.hostEmployeeEmail,
+      photoUrl: visitRequest.visitorPhotoUrl || '',
+      checkInTime: new Date(),
+      status: 'checked-in',
+      qrCode,
+      requestId: visitRequest._id,
+      checkoutEmailSent: false,
+      checkedInBy: visitRequest.requestedBy || {
+        userId: authData.userId,
+        name: visitRequest.hostEmployeeName,
+        role: 'security',
+      },
+    })
+
     // Send approval email with QR code to visitor
     try {
       await sendApprovalEmailWithQR(
@@ -80,14 +103,14 @@ export async function PATCH(
       // Continue even if email fails
     }
 
-    // Create notification for visitor (if they have an account)
+    // Create notification for host employee
     try {
       await Notification.create({
         userId: visitRequest.hostEmployeeId,
         type: 'approval',
         title: 'Visit Request Approved',
-        message: `You approved ${visitRequest.visitorName}'s visit request. QR code sent to ${visitRequest.visitorEmail}`,
-        relatedId: visitRequest._id,
+        message: `You approved ${visitRequest.visitorName}'s visit request. Visitor is now checked in.`,
+        relatedId: visitor._id,
         isRead: false,
       })
     } catch (notifError) {
@@ -95,8 +118,9 @@ export async function PATCH(
     }
 
     return NextResponse.json({
-      message: 'Request approved and QR code sent to visitor',
+      message: 'Request approved. Visitor is now checked in.',
       request: visitRequest,
+      visitor,
     })
   } catch (error) {
     console.error('Approve request error:', error)

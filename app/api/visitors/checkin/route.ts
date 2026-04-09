@@ -87,16 +87,7 @@ export async function POST(request: NextRequest) {
     // Use fullName if available, fallback to name for backward compatibility
     const hostName = hostEmployee.fullName || hostEmployee.name || 'Unknown'
 
-    // Generate QR code for visitor
-    const qrCodeData = JSON.stringify({
-      visitorName: fullName,
-      visitorEmail: email,
-      hostEmployee: hostName,
-      checkInTime: new Date().toISOString(),
-    })
-    const qrCode = await QRCode.toDataURL(qrCodeData)
-
-    // Get the current user (security guard or admin) who is checking in
+    // Get the current user (security guard or admin) who is creating the request
     const currentUser = await User.findById(authData.userId)
     if (!currentUser) {
       return NextResponse.json(
@@ -105,31 +96,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const checkedInByName = currentUser.fullName || currentUser.name || 'Unknown'
+    const createdByName = currentUser.fullName || currentUser.name || 'Unknown'
 
-    // Create visitor record (immediate check-in, no approval needed for security desk check-ins)
-    const visitor = await Visitor.create({
-      fullName,
-      email,
-      phoneNumber,
-      company,
+    // Create PENDING visit request - host must approve before visitor is checked in
+    const visitRequest = await VisitRequest.create({
+      visitorName: fullName,
+      visitorEmail: email,
+      visitorPhone: phoneNumber,
+      visitorCompany: company,
       purpose,
+      requestedDate: new Date(),
+      requestedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       hostEmployeeId,
       hostEmployeeName: hostName,
       hostEmployeeEmail: hostEmployee.email,
-      photoUrl: photoBase64,
-      checkInTime: new Date(),
-      status: 'checked-in',
-      qrCode,
-      checkoutEmailSent: false,
-      checkedInBy: {
+      status: 'pending',
+      createdBy: authData.role,
+      isPreApproval: false,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      emailSent: false,
+      notificationSent: false,
+      visitorPhotoUrl: photoBase64, // Store photo in request for later use
+      requestedBy: {
         userId: authData.userId,
-        name: checkedInByName,
+        name: createdByName,
         role: authData.role,
       },
     })
 
-    // Send email notification to host employee about the visitor
+    // Send email notification to host employee for APPROVAL
     try {
       await sendVisitorRequestEmail(
         hostEmployee.email,
@@ -140,32 +135,36 @@ export async function POST(request: NextRequest) {
           phone: phoneNumber,
           purpose,
           company,
-          requestId: visitor._id.toString(),
+          requestId: visitRequest._id.toString(),
         }
       )
+      visitRequest.emailSent = true
+      await visitRequest.save()
     } catch (emailError) {
       console.error('Email sending error:', emailError)
       // Continue even if email fails
     }
 
-    // Create in-app notification
+    // Create in-app notification for APPROVAL REQUEST
     try {
       await Notification.create({
         userId: hostEmployeeId,
-        type: 'checkin',
-        title: 'Visitor Checked In',
-        message: `${fullName} has checked in and is here to see you. Purpose: ${purpose}`,
-        relatedId: visitor._id,
+        type: 'request',
+        title: 'New Visitor Approval Request',
+        message: `${fullName} is at the reception waiting to see you. Purpose: ${purpose}. Please approve or deny.`,
+        relatedId: visitRequest._id,
         isRead: false,
       })
+      visitRequest.notificationSent = true
+      await visitRequest.save()
     } catch (notifError) {
       console.error('Notification error:', notifError)
     }
 
     return NextResponse.json({
-      message: 'Visitor checked in successfully',
-      ...visitor.toObject(),
-      _id: visitor._id.toString(),
+      message: 'Visitor request sent to host employee. Awaiting approval.',
+      request: visitRequest,
+      status: 'pending',
     }, { status: 201 })
 
   } catch (error) {

@@ -94,8 +94,13 @@ export default function CheckInDialog({ open, onOpenChange }: CheckInDialogProps
       formDataToSend.append('photo', photo)
 
       await dispatch(checkInVisitor(formDataToSend)).unwrap()
-      toast.success('Visitor checked in successfully')
+      toast.success('Visitor request sent to host employee. Awaiting approval.')
       onOpenChange(false)
+      
+      // Refresh requests list
+      if (onSuccess) {
+        onSuccess()
+      }
       
       // Reset form
       setFormData({
