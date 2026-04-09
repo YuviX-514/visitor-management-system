@@ -10,11 +10,19 @@ export interface IVisitRequest extends Document {
   requestedTime: string
   hostEmployeeId: mongoose.Types.ObjectId
   hostEmployeeName: string
+  hostEmployeeEmail: string
   status: 'pending' | 'approved' | 'rejected'
   qrCode?: string
   approvedAt?: Date
   rejectedAt?: Date
+  rejectedReason?: string
+  canReverse: boolean
+  reversalDeadline?: Date
+  isPreApproval: boolean
+  emailSent: boolean
+  notificationSent: boolean
   expiresAt: Date
+  createdBy: string
   createdAt: Date
   updatedAt: Date
 }
@@ -63,6 +71,11 @@ const VisitRequestSchema = new Schema<IVisitRequest>(
       type: String,
       required: true,
     },
+    hostEmployeeEmail: {
+      type: String,
+      required: true,
+      lowercase: true,
+    },
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
@@ -77,9 +90,36 @@ const VisitRequestSchema = new Schema<IVisitRequest>(
     rejectedAt: {
       type: Date,
     },
+    rejectedReason: {
+      type: String,
+    },
+    canReverse: {
+      type: Boolean,
+      default: true,
+    },
+    reversalDeadline: {
+      type: Date,
+    },
+    isPreApproval: {
+      type: Boolean,
+      default: false,
+    },
+    emailSent: {
+      type: Boolean,
+      default: false,
+    },
+    notificationSent: {
+      type: Boolean,
+      default: false,
+    },
     expiresAt: {
       type: Date,
       required: true,
+    },
+    createdBy: {
+      type: String,
+      enum: ['security', 'employee', 'admin'],
+      default: 'security',
     },
   },
   {
