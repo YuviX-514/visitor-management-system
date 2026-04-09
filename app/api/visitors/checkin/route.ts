@@ -84,11 +84,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Use fullName if available, fallback to name for backward compatibility
+    const hostName = hostEmployee.fullName || hostEmployee.name || 'Unknown'
+
     // Generate QR code for visitor
     const qrCodeData = JSON.stringify({
       visitorName: fullName,
       visitorEmail: email,
-      hostEmployee: hostEmployee.fullName,
+      hostEmployee: hostName,
       checkInTime: new Date().toISOString(),
     })
     const qrCode = await QRCode.toDataURL(qrCodeData)
@@ -101,7 +104,7 @@ export async function POST(request: NextRequest) {
       company,
       purpose,
       hostEmployeeId,
-      hostEmployeeName: hostEmployee.fullName,
+      hostEmployeeName: hostName,
       hostEmployeeEmail: hostEmployee.email,
       photoUrl: photoBase64,
       checkInTime: new Date(),
@@ -114,7 +117,7 @@ export async function POST(request: NextRequest) {
     try {
       await sendVisitorRequestEmail(
         hostEmployee.email,
-        hostEmployee.fullName,
+        hostName,
         {
           name: fullName,
           email,
