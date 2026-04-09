@@ -61,16 +61,19 @@ export default function VisitorTable({ visitors, showCheckout }: VisitorTablePro
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage src={visitor.photoUrl} alt={visitor.fullName} />
+                      <AvatarImage src={visitor.photoUrl} alt={visitor.fullName || 'Visitor'} />
                       <AvatarFallback>
                         {visitor.fullName
-                          .split(' ')
-                          .map((n) => n[0])
-                          .join('')}
+                          ? visitor.fullName
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                              .toUpperCase()
+                          : 'V'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{visitor.fullName}</div>
+                      <div className="font-medium">{visitor.fullName || 'N/A'}</div>
                       {visitor.company && (
                         <div className="text-sm text-muted-foreground">{visitor.company}</div>
                       )}
