@@ -27,8 +27,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
-    const { fullName, email, phoneNumber, company, purpose, hostEmployeeId, hostEmployeeName } = body
+    // Parse FormData (not JSON because of photo upload)
+    const formData = await request.formData()
+    const fullName = formData.get('fullName') as string
+    const email = formData.get('email') as string
+    const phoneNumber = formData.get('phoneNumber') as string
+    const company = formData.get('company') as string
+    const purpose = formData.get('purpose') as string
+    const hostEmployeeId = formData.get('hostEmployeeId') as string
+    const hostEmployeeName = formData.get('hostEmployeeName') as string
+    const photo = formData.get('photo') as File
 
     if (!fullName || !email || !phoneNumber || !purpose || !hostEmployeeId || !hostEmployeeName) {
       return NextResponse.json(
@@ -36,6 +44,18 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    if (!photo) {
+      return NextResponse.json(
+        { message: 'Visitor photo is mandatory' },
+        { status: 400 }
+      )
+    }
+
+    // Convert photo to base64 for storage
+    const bytes = await photo.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    const photoBase64 = `data:${photo.type};base64,${buffer.toString('base64')}`
 
     // Validate email is real
     const isValidEmail = await validateEmail(email)
