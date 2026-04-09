@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import VisitRequest from '@/lib/models/VisitRequest'
-import Visitor from '@/lib/models/Visitor'
 import Notification from '@/lib/models/Notification'
 import { authenticateRequest } from '@/lib/auth'
 import { sendApprovalEmailWithQR } from '@/lib/email'
@@ -34,22 +33,31 @@ export async function PATCH(
 
     if (visitRequest.hostEmployeeId.toString() !== authData.userId && authData.role !== 'admin') {
       return NextResponse.json(
-        { message: 'Not authorized to approve this request' },
+        { message: 'Not authorized to reverse this request' },
         { status: 403 }
       )
     }
 
-    if (visitRequest.status !== 'pending') {
+    if (visitRequest.status !== 'rejected') {
       return NextResponse.json(
-        { message: 'Request already processed' },
+        { message: 'Only rejected requests can be reversed' },
         { status: 400 }
       )
     }
 
-    // Update request status
+    // Check if reversal window has expired
+    if (!visitRequest.canReverse || (visitRequest.reversalDeadline && new Date() > visitRequest.reversalDeadline)) {
+      return NextResponse.json(
+        { message: 'Reversal window has expired. You had 10 minutes to reverse the rejection.' },
+        { status: 400 }
+      )
+    }
+
+    // Reverse the rejection - approve the request
     visitRequest.status = 'approved'
     visitRequest.approvedAt = new Date()
-    visitRequest.canReverse = false // Once approved, can't reverse
+    visitRequest.canReverse = false
+    visitRequest.reversalDeadline = undefined
 
     // Generate QR code for visitor
     const qrCodeData = JSON.stringify({
@@ -77,16 +85,15 @@ export async function PATCH(
       )
     } catch (emailError) {
       console.error('Email sending error:', emailError)
-      // Continue even if email fails
     }
 
-    // Create notification for visitor (if they have an account)
+    // Create notification
     try {
       await Notification.create({
         userId: visitRequest.hostEmployeeId,
         type: 'approval',
-        title: 'Visit Request Approved',
-        message: `You approved ${visitRequest.visitorName}'s visit request. QR code sent to ${visitRequest.visitorEmail}`,
+        title: 'Rejection Reversed - Request Approved',
+        message: `You reversed your rejection and approved ${visitRequest.visitorName}'s visit request. QR code sent to ${visitRequest.visitorEmail}`,
         relatedId: visitRequest._id,
         isRead: false,
       })
@@ -95,11 +102,11 @@ export async function PATCH(
     }
 
     return NextResponse.json({
-      message: 'Request approved and QR code sent to visitor',
+      message: 'Rejection reversed successfully. Request is now approved and QR code sent to visitor.',
       request: visitRequest,
     })
   } catch (error) {
-    console.error('Approve request error:', error)
+    console.error('Reverse request error:', error)
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

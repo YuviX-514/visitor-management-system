@@ -8,12 +8,16 @@ export interface IVisitor extends Document {
   purpose: string
   hostEmployeeId: mongoose.Types.ObjectId
   hostEmployeeName: string
+  hostEmployeeEmail: string
   photoUrl: string
   checkInTime: Date
   checkOutTime?: Date
+  visitDuration?: string
   status: 'checked-in' | 'checked-out'
   qrCode?: string
   idProof?: string
+  requestId?: mongoose.Types.ObjectId
+  checkoutEmailSent: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -54,6 +58,11 @@ const VisitorSchema = new Schema<IVisitor>(
       type: String,
       required: true,
     },
+    hostEmployeeEmail: {
+      type: String,
+      required: true,
+      lowercase: true,
+    },
     photoUrl: {
       type: String,
       required: [true, 'Photo is required'],
@@ -65,6 +74,9 @@ const VisitorSchema = new Schema<IVisitor>(
     checkOutTime: {
       type: Date,
     },
+    visitDuration: {
+      type: String,
+    },
     status: {
       type: String,
       enum: ['checked-in', 'checked-out'],
@@ -75,6 +87,14 @@ const VisitorSchema = new Schema<IVisitor>(
     },
     idProof: {
       type: String,
+    },
+    requestId: {
+      type: Schema.Types.ObjectId,
+      ref: 'VisitRequest',
+    },
+    checkoutEmailSent: {
+      type: Boolean,
+      default: false,
     },
   },
   {

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb'
 import Visitor from '@/lib/models/Visitor'
 import Notification from '@/lib/models/Notification'
 import { authenticateRequest } from '@/lib/auth'
+import { sendCheckoutNotification } from '@/lib/email'
 
 export async function PATCH(
   request: NextRequest,
@@ -43,20 +44,58 @@ export async function PATCH(
       )
     }
 
-    visitor.checkOutTime = new Date()
+    const checkOutTime = new Date()
+    visitor.checkOutTime = checkOutTime
     visitor.status = 'checked-out'
+    
+    // Calculate visit duration
+    const checkInTime = new Date(visitor.checkInTime)
+    const durationMs = checkOutTime.getTime() - checkInTime.getTime()
+    const hours = Math.floor(durationMs / (1000 * 60 * 60))
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
+    visitor.visitDuration = `${hours}h ${minutes}m`
+    
     await visitor.save()
 
-    // Create notification for host employee
-    await Notification.create({
-      userId: visitor.hostEmployeeId,
-      type: 'checkout',
-      title: 'Visitor Checked Out',
-      message: `${visitor.fullName} has checked out`,
-      relatedId: visitor._id,
-    })
+    // Send email notification to host employee about checkout
+    if (visitor.hostEmployeeEmail && !visitor.checkoutEmailSent) {
+      try {
+        await sendCheckoutNotification(
+          visitor.hostEmployeeEmail,
+          visitor.hostEmployeeName,
+          {
+            name: visitor.fullName,
+            checkInTime: visitor.checkInTime,
+            checkOutTime: visitor.checkOutTime,
+            duration: visitor.visitDuration,
+          }
+        )
+        visitor.checkoutEmailSent = true
+        await visitor.save()
+      } catch (emailError) {
+        console.error('Checkout email error:', emailError)
+      }
+    }
 
-    return NextResponse.json(visitor)
+    // Create in-app notification for host employee
+    try {
+      await Notification.create({
+        userId: visitor.hostEmployeeId,
+        type: 'checkout',
+        title: 'Visitor Checked Out',
+        message: `${visitor.fullName} has checked out. Visit duration: ${visitor.visitDuration}`,
+        relatedId: visitor._id,
+        isRead: false,
+      })
+    } catch (notifError) {
+      console.error('Notification error:', notifError)
+    }
+
+    return NextResponse.json({
+      message: 'Visitor checked out successfully',
+      visitor,
+      duration: visitor.visitDuration,
+    })
   } catch (error) {
     console.error('Check-out error:', error)
     return NextResponse.json(
