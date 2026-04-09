@@ -90,10 +90,16 @@ export default function VisitorTable({ visitors, showCheckout }: VisitorTablePro
                 <TableCell>{visitor.hostEmployeeName}</TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {format(new Date(visitor.checkInTime), 'MMM dd, yyyy')}
-                    <div className="text-muted-foreground">
-                      {format(new Date(visitor.checkInTime), 'hh:mm a')}
-                    </div>
+                    {visitor.checkInTime && !isNaN(new Date(visitor.checkInTime).getTime()) ? (
+                      <>
+                        {format(new Date(visitor.checkInTime), 'MMM dd, yyyy')}
+                        <div className="text-muted-foreground">
+                          {format(new Date(visitor.checkInTime), 'hh:mm a')}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">N/A</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
