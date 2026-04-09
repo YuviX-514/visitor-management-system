@@ -85,6 +85,7 @@ export default function HistoryPage() {
     // Date filter
     if (dateFilter) {
       filtered = filtered.filter((v) => {
+        if (!v.checkInTime || isNaN(new Date(v.checkInTime).getTime())) return false
         const checkInDate = format(new Date(v.checkInTime), 'yyyy-MM-dd')
         return checkInDate === dateFilter
       })
@@ -107,8 +108,12 @@ export default function HistoryPage() {
       v.company || 'N/A',
       v.purpose,
       v.hostEmployeeName,
-      format(new Date(v.checkInTime), 'yyyy-MM-dd HH:mm'),
-      v.checkOutTime ? format(new Date(v.checkOutTime), 'yyyy-MM-dd HH:mm') : 'N/A',
+      v.checkInTime && !isNaN(new Date(v.checkInTime).getTime()) 
+        ? format(new Date(v.checkInTime), 'yyyy-MM-dd HH:mm') 
+        : 'N/A',
+      v.checkOutTime && !isNaN(new Date(v.checkOutTime).getTime())
+        ? format(new Date(v.checkOutTime), 'yyyy-MM-dd HH:mm') 
+        : 'N/A',
       v.visitDuration || 'N/A',
       v.status,
     ])
@@ -243,15 +248,19 @@ export default function HistoryPage() {
                         </TableCell>
                         <TableCell>{visitor.hostEmployeeName}</TableCell>
                         <TableCell>
-                          <div className="text-sm">
-                            <div>{format(new Date(visitor.checkInTime), 'MMM dd, yyyy')}</div>
-                            <div className="text-muted-foreground">
-                              {format(new Date(visitor.checkInTime), 'hh:mm a')}
+                          {visitor.checkInTime && !isNaN(new Date(visitor.checkInTime).getTime()) ? (
+                            <div className="text-sm">
+                              <div>{format(new Date(visitor.checkInTime), 'MMM dd, yyyy')}</div>
+                              <div className="text-muted-foreground">
+                                {format(new Date(visitor.checkInTime), 'hh:mm a')}
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            <span className="text-muted-foreground">N/A</span>
+                          )}
                         </TableCell>
                         <TableCell>
-                          {visitor.checkOutTime ? (
+                          {visitor.checkOutTime && !isNaN(new Date(visitor.checkOutTime).getTime()) ? (
                             <div className="text-sm">
                               <div>{format(new Date(visitor.checkOutTime), 'MMM dd, yyyy')}</div>
                               <div className="text-muted-foreground">

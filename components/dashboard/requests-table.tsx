@@ -83,8 +83,14 @@ export default function RequestsTable({ requests, showActions }: RequestsTablePr
                 <TableCell>{request.hostEmployeeName}</TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {format(new Date(request.requestedDate), 'MMM dd, yyyy')}
-                    <div className="text-muted-foreground">{request.requestedTime}</div>
+                    {request.requestedDate && !isNaN(new Date(request.requestedDate).getTime()) ? (
+                      <>
+                        {format(new Date(request.requestedDate), 'MMM dd, yyyy')}
+                        <div className="text-muted-foreground">{request.requestedTime || 'N/A'}</div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">N/A</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
