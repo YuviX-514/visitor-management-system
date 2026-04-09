@@ -3,10 +3,11 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 export interface Notification {
   _id: string
   userId: string
-  type: 'visit_request' | 'approval' | 'rejection' | 'checkin' | 'checkout'
+  type: 'visit_request' | 'approval' | 'rejection' | 'checkin' | 'checkout' | 'request'
   title: string
   message: string
-  read: boolean
+  isRead: boolean
+  read?: boolean
   relatedId?: string
   createdAt: string
 }
@@ -65,7 +66,7 @@ export const markAllAsRead = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/notifications/read-all', {
+      const response = await fetch('/api/notifications/mark-all-read', {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -84,7 +85,7 @@ const notificationSlice = createSlice({
   reducers: {
     addNotification: (state, action: PayloadAction<Notification>) => {
       state.notifications.unshift(action.payload)
-      if (!action.payload.read) {
+      if (!action.payload.isRead && !action.payload.read) {
         state.unreadCount += 1
       }
     },
@@ -110,15 +111,17 @@ const notificationSlice = createSlice({
       })
       // Mark As Read
       .addCase(markAsRead.fulfilled, (state, action) => {
-        const index = state.notifications.findIndex(n => n._id === action.payload._id)
+        const notificationId = action.meta.arg
+        const index = state.notifications.findIndex(n => n._id === notificationId)
         if (index !== -1) {
+          state.notifications[index].isRead = true
           state.notifications[index].read = true
           state.unreadCount = Math.max(0, state.unreadCount - 1)
         }
       })
       // Mark All As Read
       .addCase(markAllAsRead.fulfilled, (state) => {
-        state.notifications = state.notifications.map(n => ({ ...n, read: true }))
+        state.notifications = state.notifications.map(n => ({ ...n, isRead: true, read: true }))
         state.unreadCount = 0
       })
   },
