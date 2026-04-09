@@ -14,8 +14,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
-import { Bell, Building2, LogOut, User } from 'lucide-react'
+import { Bell, Building2, LogOut, User, History, LayoutDashboard } from 'lucide-react'
 import NotificationsDropdown from '@/components/dashboard/notifications-dropdown'
+import Link from 'next/link'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -49,9 +50,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-50 w-full border-b bg-white">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-blue-600" />
-            <span className="text-xl font-bold">VMS</span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-6 w-6 text-blue-600" />
+              <span className="text-xl font-bold">VMS</span>
+            </div>
+            <nav className="hidden md:flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Button>
+              </Link>
+              {(user?.role === 'admin') && (
+                <Link href="/dashboard/history">
+                  <Button variant="ghost" className="gap-2">
+                    <History className="h-4 w-4" />
+                    History
+                  </Button>
+                </Link>
+              )}
+            </nav>
           </div>
 
           <div className="flex items-center gap-4">

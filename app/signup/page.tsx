@@ -22,6 +22,7 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    fullName: '',
     name: '',
     role: 'employee' as UserRole,
     department: '',
@@ -67,14 +68,14 @@ export default function SignupPage() {
 
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="name">Full Name</FieldLabel>
+                <FieldLabel htmlFor="fullName">Full Name</FieldLabel>
                 <InputGroup>
                   <InputGroupInput
-                    id="name"
+                    id="fullName"
                     type="text"
                     placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value, name: e.target.value.split(' ')[0] })}
                     required
                   />
                 </InputGroup>
