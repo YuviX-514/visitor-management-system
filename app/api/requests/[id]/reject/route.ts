@@ -21,8 +21,13 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const body = await request.json()
-    const { reason } = body
+    let reason: string | undefined
+    try {
+      const body = await request.json()
+      reason = body?.reason
+    } catch {
+      reason = undefined
+    }
 
     const visitRequest = await VisitRequest.findById(id)
     if (!visitRequest) {
@@ -80,9 +85,11 @@ export async function PATCH(
       console.error('Notification error:', notifError)
     }
 
+    const requestObj = visitRequest.toObject()
     return NextResponse.json({
+      ...requestObj,
+      _id: requestObj._id.toString(),
       message: 'Request rejected. You have 10 minutes to reverse this decision.',
-      request: visitRequest,
       reversalDeadline: visitRequest.reversalDeadline,
     })
   } catch (error) {

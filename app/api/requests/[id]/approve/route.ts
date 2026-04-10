@@ -117,9 +117,11 @@ export async function PATCH(
       console.error('Notification error:', notifError)
     }
 
+    const requestObj = visitRequest.toObject()
     return NextResponse.json({
+      ...requestObj,
+      _id: requestObj._id.toString(),
       message: 'Request approved. Visitor is now checked in.',
-      request: visitRequest,
       visitor,
     })
   } catch (error) {
