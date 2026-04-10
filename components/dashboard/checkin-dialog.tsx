@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { useAppDispatch } from '@/lib/hooks'
 import { checkInVisitor } from '@/lib/features/visitors/visitorSlice'
+import { fetchRequests } from '@/lib/features/requests/requestSlice'
 import {
   Dialog,
   DialogContent,
@@ -10,20 +11,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
-import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Camera, Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import EmployeeAutocomplete from './employee-autocomplete'
 
 interface CheckInDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
-export default function CheckInDialog({ open, onOpenChange }: CheckInDialogProps) {
+export default function CheckInDialog({ open, onOpenChange, onSuccess }: CheckInDialogProps) {
   const dispatch = useAppDispatch()
   const [loading, setLoading] = useState(false)
   const [photo, setPhoto] = useState<File | null>(null)
@@ -50,9 +52,7 @@ export default function CheckInDialog({ open, onOpenChange }: CheckInDialogProps
       }
       setPhoto(file)
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string)
-      }
+      reader.onloadend = () => setPreviewUrl(reader.result as string)
       reader.readAsDataURL(file)
     }
   }
@@ -61,62 +61,53 @@ export default function CheckInDialog({ open, onOpenChange }: CheckInDialogProps
     setFormData({
       ...formData,
       hostEmployeeId: employee._id,
-      hostEmployeeName: employee.fullName,
+      hostEmployeeName: employee.fullName || employee.name,
       hostEmployeeEmail: employee.email,
     })
   }
 
+  const resetForm = () => {
+    setFormData({
+      fullName: '', email: '', phoneNumber: '', company: '',
+      purpose: '', hostEmployeeId: '', hostEmployeeName: '', hostEmployeeEmail: '',
+    })
+    setPhoto(null)
+    setPreviewUrl(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!photo) {
-      toast.error('Visitor photo is mandatory. Please upload a photo.')
+      toast.error('Visitor photo is mandatory')
       return
     }
-
     if (!formData.hostEmployeeId) {
-      toast.error('Please select the host employee')
+      toast.error('Please select a host employee')
       return
     }
 
     setLoading(true)
-    
     try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('fullName', formData.fullName)
-      formDataToSend.append('email', formData.email)
-      formDataToSend.append('phoneNumber', formData.phoneNumber)
-      formDataToSend.append('company', formData.company)
-      formDataToSend.append('purpose', formData.purpose)
-      formDataToSend.append('hostEmployeeId', formData.hostEmployeeId)
-      formDataToSend.append('hostEmployeeName', formData.hostEmployeeName)
-      formDataToSend.append('hostEmployeeEmail', formData.hostEmployeeEmail)
-      formDataToSend.append('photo', photo)
+      const fd = new FormData()
+      fd.append('fullName', formData.fullName)
+      fd.append('email', formData.email)
+      fd.append('phoneNumber', formData.phoneNumber)
+      fd.append('company', formData.company)
+      fd.append('purpose', formData.purpose)
+      fd.append('hostEmployeeId', formData.hostEmployeeId)
+      fd.append('hostEmployeeName', formData.hostEmployeeName)
+      fd.append('hostEmployeeEmail', formData.hostEmployeeEmail)
+      fd.append('photo', photo)
 
-      await dispatch(checkInVisitor(formDataToSend)).unwrap()
-      toast.success('Visitor request sent to host employee. Awaiting approval.')
+      await dispatch(checkInVisitor(fd)).unwrap()
+      toast.success('Approval request sent to host employee')
+      dispatch(fetchRequests())
+      onSuccess?.()
       onOpenChange(false)
-      
-      // Refresh requests list
-      if (onSuccess) {
-        onSuccess()
-      }
-      
-      // Reset form
-      setFormData({
-        fullName: '',
-        email: '',
-        phoneNumber: '',
-        company: '',
-        purpose: '',
-        hostEmployeeId: '',
-        hostEmployeeName: '',
-        hostEmployeeEmail: '',
-      })
-      setPhoto(null)
-      setPreviewUrl(null)
-    } catch (error) {
-      toast.error('Failed to check in visitor')
+      resetForm()
+    } catch (err: any) {
+      toast.error(err || 'Failed to submit visitor request')
     } finally {
       setLoading(false)
     }
@@ -126,181 +117,87 @@ export default function CheckInDialog({ open, onOpenChange }: CheckInDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Visitor Check-In</DialogTitle>
+          <DialogTitle>Register Visitor</DialogTitle>
           <DialogDescription>
-            Register a new visitor. Photo is mandatory for all visitors.
+            Fill in visitor details. An approval request will be sent to the host employee.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Visitor Photo - MANDATORY */}
-          <FieldGroup>
-            <FieldLabel>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Photo */}
+          <div className="space-y-2">
+            <Label>
               Visitor Photo <span className="text-destructive">*</span>
-            </FieldLabel>
-            <div className="flex flex-col gap-4">
+            </Label>
+            <div className="flex items-center gap-4">
               {previewUrl && (
-                <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-primary">
-                  <img
-                    src={previewUrl}
-                    alt="Visitor preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-20 h-20 rounded-lg object-cover border"
+                />
               )}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="gap-2"
-                >
+              <div>
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
                   <Upload className="h-4 w-4" />
                   {photo ? 'Change Photo' : 'Upload Photo'}
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                {!photo && <p className="text-xs text-muted-foreground mt-1">Required for check-in</p>}
               </div>
-              {!photo && (
-                <p className="text-xs text-muted-foreground">
-                  Photo is required for visitor check-in
-                </p>
-              )}
             </div>
-          </FieldGroup>
-
-          {/* Visitor Information */}
-          <div className="grid grid-cols-2 gap-4">
-            <FieldGroup>
-              <FieldLabel htmlFor="fullName">
-                Full Name <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Field>
-                <InputGroup>
-                  <InputGroupInput
-                    id="fullName"
-                    type="text"
-                    required
-                    value={formData.fullName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, fullName: e.target.value })
-                    }
-                    placeholder="John Doe"
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup>
-              <FieldLabel htmlFor="email">
-                Email <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Field>
-                <InputGroup>
-                  <InputGroupInput
-                    id="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    placeholder="visitor@example.com"
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup>
-              <FieldLabel htmlFor="phone">
-                Phone Number <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Field>
-                <InputGroup>
-                  <InputGroupInput
-                    id="phone"
-                    type="tel"
-                    required
-                    value={formData.phoneNumber}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phoneNumber: e.target.value })
-                    }
-                    placeholder="+1 234 567 8900"
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup>
-              <FieldLabel htmlFor="company">Company</FieldLabel>
-              <Field>
-                <InputGroup>
-                  <InputGroupInput
-                    id="company"
-                    type="text"
-                    value={formData.company}
-                    onChange={(e) =>
-                      setFormData({ ...formData, company: e.target.value })
-                    }
-                    placeholder="Company Name"
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
           </div>
 
-          {/* Host Employee Search with Autocomplete */}
-          <FieldGroup>
-            <FieldLabel>
-              Host Employee <span className="text-destructive">*</span>
-            </FieldLabel>
+          {/* Visitor details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name <span className="text-destructive">*</span></Label>
+              <Input id="fullName" required placeholder="John Doe" value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+              <Input id="email" type="email" required placeholder="visitor@example.com" value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
+              <Input id="phone" type="tel" required placeholder="+91 98765 43210" value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company">Company</Label>
+              <Input id="company" placeholder="Company Name" value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Host Employee */}
+          <div className="space-y-2">
+            <Label>Host Employee <span className="text-destructive">*</span></Label>
             <EmployeeAutocomplete
               value={formData.hostEmployeeName}
               onSelect={handleEmployeeSelect}
               placeholder="Search by name, Employee ID, or department..."
             />
             {formData.hostEmployeeName && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Selected: <strong>{formData.hostEmployeeName}</strong>
-              </p>
+              <p className="text-xs text-green-600 font-medium">Selected: {formData.hostEmployeeName}</p>
             )}
-          </FieldGroup>
+          </div>
 
           {/* Purpose */}
-          <FieldGroup>
-            <FieldLabel htmlFor="purpose">
-              Purpose of Visit <span className="text-destructive">*</span>
-            </FieldLabel>
-            <Field>
-              <Textarea
-                id="purpose"
-                required
-                value={formData.purpose}
-                onChange={(e) =>
-                  setFormData({ ...formData, purpose: e.target.value })
-                }
-                placeholder="Meeting, Interview, Delivery, etc."
-                rows={3}
-              />
-            </Field>
-          </FieldGroup>
+          <div className="space-y-2">
+            <Label htmlFor="purpose">Purpose of Visit <span className="text-destructive">*</span></Label>
+            <Textarea id="purpose" required rows={2} placeholder="Meeting, Interview, Delivery, etc."
+              value={formData.purpose} onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} />
+          </div>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !photo}>
-              {loading ? 'Checking In...' : 'Check In Visitor'}
+            <Button type="submit" disabled={loading || !photo || !formData.hostEmployeeId}>
+              {loading ? 'Sending Request...' : 'Send Approval Request'}
             </Button>
           </div>
         </form>
