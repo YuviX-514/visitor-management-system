@@ -6,11 +6,10 @@ import { useAppDispatch, useAppSelector } from '@/lib/hooks'
 import { login, clearError } from '@/lib/features/auth/authSlice'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
-import { InputGroup, InputGroupInput } from '@/components/ui/input-group'
-import { Alert } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { Mail, Lock, Building2 } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center mb-4">
@@ -52,50 +51,42 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <Alert variant="destructive">
+              <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
                 {error}
-              </Alert>
+              </div>
             )}
 
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <InputGroup>
-                  <InputGroupInput
-                    id="email"
-                    type="email"
-                    placeholder="john@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="john@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <InputGroup>
-                  <InputGroupInput
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </InputGroup>
-              </Field>
-            </FieldGroup>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              {'Don\'t have an account?'}{' '}
-              <Link href="/signup" className="text-primary hover:underline">
+              {"Don't have an account?"}{' '}
+              <Link href="/signup" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
             </p>
