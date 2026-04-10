@@ -89,4 +89,9 @@ UserSchema.pre('save', async function () {
   }
 })
 
-export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
+// Delete cached model to prevent stale hook issues during hot reload
+if (mongoose.models.User) {
+  delete mongoose.models.User
+}
+
+export default mongoose.model<IUser>('User', UserSchema)
