@@ -72,9 +72,8 @@ export async function sendVisitorRequestEmail(
 ) {
   const transporter = createTransporter();
 
-  const approveUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/requests?id=${visitorData.requestId}&action=approve`;
-  const denyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/requests?id=${visitorData.requestId}&action=deny`;
-
+  const approveUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/requests/${visitorData.requestId}/approve?token=${process.env.EMAIL_SECRET}`;
+const denyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/requests/${visitorData.requestId}/reject?token=${process.env.EMAIL_SECRET}`;
   const mailOptions = {
     from: process.env.SMTP_FROM || 'noreply@visitormanagement.com',
     to: employeeEmail,
