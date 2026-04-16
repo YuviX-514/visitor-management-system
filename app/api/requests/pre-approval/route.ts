@@ -5,10 +5,13 @@ import User from '@/lib/models/User'
 import { authenticateRequest } from '@/lib/auth'
 import { validateEmail, sendPreApprovalEmail } from '@/lib/email'
 import QRCode from 'qrcode'
+import { expireRequestsLogic } from '@/lib/expireRequests'
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect()
+
+    await expireRequestsLogic()
 
     const authData = await authenticateRequest(request)
     if (!authData) {

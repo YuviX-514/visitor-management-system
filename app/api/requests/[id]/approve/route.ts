@@ -6,6 +6,7 @@ import Notification from '@/lib/models/Notification'
 import { authenticateRequest } from '@/lib/auth'
 import { sendApprovalEmailWithQR } from '@/lib/email'
 import QRCode from 'qrcode'
+import { expireRequestsLogic } from '@/lib/expireRequests'
 
 export async function PATCH(
   request: NextRequest,
@@ -13,6 +14,8 @@ export async function PATCH(
 ) {
   try {
     await dbConnect()
+
+    await expireRequestsLogic()
 
     const authData = await authenticateRequest(request)
     if (!authData) {

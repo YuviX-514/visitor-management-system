@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongodb'
 import User from '@/lib/models/User'
 import { authenticateRequest } from '@/lib/auth'
+import { expireRequestsLogic } from '@/lib/expireRequests'
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect()
+
+    await expireRequestsLogic()
 
     const authData = await authenticateRequest(request)
     if (!authData) {
